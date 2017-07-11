@@ -1,0 +1,9 @@
+{
+  "name": "downloader",
+  "version": "0.0.0",
+  "description": "Downloader",
+  "main": "app.js",
+  "author": {
+    "name": "dima"
+  }
+}
