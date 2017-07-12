@@ -5,46 +5,112 @@ var http = require('http');
 var fs = require('fs');
 var url = require('url');
 var uuid = require('uuid/v1');
-var Downloader = require('mt-files-downloader');
+var mtd = require('zeltice-mt-downloader')
+
+var Statuses = {};
 
 
-var Statuses = new Array();
+const Status =
+    {
+        InProcess: 0,
+        Error: 1,
+        Success: 2
+    }
+
+
+//load Statuses
+if (fs.existsSync('statuses.json')) {
+    var data = fs.readFileSync('statuses.json');
+    Statuses = JSON.parse(data);
+}
+
+//save Statuses
+var save = function () {
+
+    fs.writeFile('statuses.json', JSON.stringify(Statuses), function (err) {
+        if (err) {
+            return console.error(err);
+        }
+    });
+    console.log("Saved:", Statuses);
+    //exit(0);
+};
+
+
+process.on('SIGINT', save);
+
 
 
 http.createServer(function (request, response) {
-
-    var downloader = new Downloader;
-    var id = uuid(request);
-    Statuses.push(id);
-    var path = __dirname + '\\downloads\\' +id + '.jpg';
-    var dl = downloader.download(request.url, path);
-
-    dl.setRetryOptions({
-        maxRetries: 0,
-        retryInterval: 1000
+    let body = [];
+    request.on('error', (err) => {
+        console.error(err);
+        return;
     });
+    request.on('data', (chunk) => {
+        body.push(chunk);
+    })
+    request.on('end', () => {
+        body = Buffer.concat(body).toString();
 
-    Statuses[id] = dl.getStats();
+        if (request.url !== '/') {
 
-    dl.on('start', function () {
-        console.log("start");
+            var id = uuid(request.url);
+
+            var path = __dirname + '\\downloads\\' + id + '.jpg';
+            var options = {
+                onStart: function (meta) {
+                    if (Statuses[id] != undefined)
+                        Statuses.length++;
+                    Statuses[id] = Status.InProcess;
+                    console.log('Download Started');
+                },
+
+                onEnd: function (err, result) {
+                    if (err) {
+                        Statuses[id] = Status.Error;
+                        console.error(err);
+                    }
+                    else {
+                        Statuses[id] = Status.Success;
+                        console.log('Download Complete');
+                    }
+                }
+            }
+            var downloader = new mtd(path, request.url, options)
+            downloader.start();
+            response.statusCode = 200;
+            response.setHeader('Content-Type', 'application/json');
+            response.end(JSON.stringify({ id: id }));
+        }
+        else {
+            if (Statuses[body] != undefined) {
+                console.log("Recived id:" + body);
+                response.statusCode = 200;
+                response.setHeader('Content-Type', 'application/json');
+
+                if (Statuses[body] == Status.Success) {
+                    //response
+                    response.end(JSON.stringify({
+                        status: Statuses[body],
+                        ref: '/downloads/' + id + '.jpg'
+                    }));
+                }
+                else {
+                    response.end(JSON.stringify({ status: Statuses[body] }));
+                }
+            }
+            else {
+                response.statusCode = 404;
+                response.end();
+            }
+        }
+
+        
     });
+        
 
-    dl.on('error', function () 
-    {
-        Statuses[id] = dl.error;
-        console.log(dl.error);
-    });
-
-    // Called when the download is finished
-    dl.on('end', function () {
-
-        Statuses[id] = dl.getStats();
-        console.log(dl.getStats());
-    });
-
-    dl.start();
-
+    
 }).listen(8081);
 
 // Console will print the message

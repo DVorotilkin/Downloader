@@ -6,22 +6,33 @@ var http = require('http');
 var options = {
     host: 'localhost',
     port: '8081',
-    path: 'https://pp.userapi.com/c841528/v841528884/5f5c/FREEPlOLWKk.jpg'
+    //path: 'https://pp.userapi.com/c543109/v543109048/50de3/Wg3mEVhc8m0.jpg',
+    method: 'POST',
+    timeout: 10000,
 };
 
-// Callback function is used to deal with response
-var callback = function (response) {
-    // Continuously update stream with data
-    var body = '';
-    response.on('data', function (data) {
-        body += data;
+
+var req = http.request(options, (res) => {
+    var output = '';
+    console.log('STATUS: ' + res.statusCode);
+    res.on('data', (chunk) => {
+        console.log('A new chunk: ', chunk);
+        output += chunk;
     });
 
-    response.on('end', function () {
-        // Data received completely.
-        console.log(body);
+
+    res.on('end', () => {
+        console.log(JSON.parse(output));
+        console.log('End GET Request');
     });
-}
-// Make a request to the server
-var req = http.request(options, callback);
+
+
+    res.on('error', (err) => {
+        console.log('Error: ', err);
+    });
+});
+req.write("cf8ff490-66f8-11e7-9e8f-67a0b368f701");
 req.end();
+
+
+

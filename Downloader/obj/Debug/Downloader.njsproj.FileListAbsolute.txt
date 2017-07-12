@@ -1,0 +1,2 @@
+D:\Work\RelationRate\Downloader\Downloader\obj\Debug\Downloader.njsprojResolveAssemblyReference.cache
+D:\Work\RelationRate\Downloader\Downloader\bin\Microsoft.NodejsTools.WebRole.dll
